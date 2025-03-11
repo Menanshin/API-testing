@@ -1,0 +1,7 @@
+selene~=2.0.0rc9
+pytest==7.4.0
+PyHamcrest
+allure-pytest
+pydantic==2.4.0
+httpx==0.24.1
+python-dotenv==1.0.0
