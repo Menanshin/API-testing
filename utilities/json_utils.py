@@ -26,7 +26,7 @@ def remove_ids(origin_dict):
 def compare_json_left_in_right(json1, json2, key='', path=''):
     """
     сравнивает, что все значения ключей из json1 есть в json2, лишние ключи из левого json - игнорируются
-    :param json1: эталонный словарь
+    :param json1: эталонный словаро
     :param json2: словарь, с которым идет сравнение
     :param key: корневое имя ключа
     :param path: путь до ключа, в котором произошло несовпадение значений
