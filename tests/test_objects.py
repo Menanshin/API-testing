@@ -33,3 +33,65 @@ class TestObjects:
         # убеждаемся, что в ответ пришли объекты, которые мы ожидаем
         assert_status_code(response, HTTPStatus.OK)
         assert_response_body_fields(request, response)
+
+    @pytest.mark.parametrize("param", [{"index": 0, "ids": [1]}, {"index": 1, "ids": [1, 2]}])
+    def test_get_objects_id_param(self, client, request, param):
+        """
+        получение заранее заготовленных объектов из базы с параметром ids,
+        GET /objects
+        """
+        # получаем массив объектов с определенными айдишниками
+        response = get_objects(client, *param['ids'])
+
+        # убеждаемся, что в ответ пришли именно те объекты, id которых мы запросили
+        assert_status_code(response, HTTPStatus.OK)
+        should_be_valid_objects_response(request, response, param)
+
+    def test_get_objects_not_exist_id(self, client):
+        """
+        попытка получить из базы объект с несуществующим id,
+        GET /objects
+        """
+        # пытаемся получить объект, несуществующий в системе
+        response = get_objects(client, 8523697415)
+
+        # убеждаемся, что в ответ пришел пустой список
+        assert_status_code(response, HTTPStatus.OK)
+        assert_empty_list(response)
+
+    def test_get_objects_invalid_id(self, client):
+        """
+        попытка получить из базы объект с невалидным по типу id,
+        GET /objects
+        """
+        # пытаемся получить объект, отправив невалидный по типу параметр ids
+        response = get_objects(client, "kjdsf23321")
+
+        # убеждаемся, что в ответ пришел пустой список
+        assert_status_code(response, HTTPStatus.OK)
+        assert_empty_list(response)
+
+    def test_get_object(self, client, request):
+        """
+        получение заранее заготовленного объекта из базы,
+        GET /objects/{id}
+        """
+        # получаем единичный объект с сервера
+        response = get_object(client, 7)
+
+        # убеждаемся, что получен именно тот объект, который мы запросили
+        assert_status_code(response, HTTPStatus.OK)
+        assert_schema(response, ObjectOutSchema)
+        assert_response_body_fields(request, response)
+
+    def test_get_object_not_exist(self, client, request):
+        """
+        попытка получить из базы единичный объект с несуществующим id,
+        GET /objects/{id}
+        """
+        # запрашиваем единичный объект с сервера с несуществующим id
+        response = get_object(client, 1593576458)
+
+        # убеждаемся, что сервер вернул NOT FOUND ответ
+        assert_status_code(response, HTTPStatus.NOT_FOUND)
+        assert_not_exist(request, response, 1593576458)
