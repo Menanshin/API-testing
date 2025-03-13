@@ -204,3 +204,33 @@ class TestObjects:
         # убеждаемся, что сервер дал NOT FOUND ответ
         assert_status_code(response, HTTPStatus.NOT_FOUND)
         assert_not_found(request, response, obj_id)
+
+    def test_delete_exist_object(self, client, request):
+        """
+        удаление сущестующего объекта,
+        DELETE /objects/{id}
+        """
+        # записываем объект в базу со всеми заполненными полями
+        response = post_object(client, json=read_json_common_request_data("valid_post_object"))
+        assert_status_code(response, HTTPStatus.OK)
+
+        # удаляем этот объект
+        obj_id = response.json()['id']
+        response = delete_object(client, obj_id)
+
+        # убеждаемся, что объект удален
+        assert_status_code(response, HTTPStatus.OK)
+        should_be_deleted_success(request, response, obj_id)
+
+    def test_delete_not_exist_object(self, client, request):
+        """
+        удаление несущестующего объекта,
+        DELETE /objects/{id}
+        """
+        # пытаемся удалить несуществующий объект
+        obj_id = "ff8081818a194cb8018a79e7545545ac"
+        response = delete_object(client, obj_id)
+
+        # убеждаемся, что сервер дал NOT FOUND ответ
+        assert_status_code(response, HTTPStatus.NOT_FOUND)
+        assert_not_exist(request, response, obj_id)
