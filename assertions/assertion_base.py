@@ -71,6 +71,79 @@ class BodyLogMsg(LogMsg):
         return self
 
 
+from typing import Type
+
+from pydantic import BaseModel
+
+from utilities.files_utils import read_json_test_data, read_json_common_response_data
+from utilities.json_utils import compare_json_left_in_right, remove_ids
+
+
+class LogMsg:
+    """
+    Базовый класс для построение логов AssertionError. Конструирует сообщение в свое поле _msg.
+    """
+
+    def __init__(self, where, response):
+        self._msg = ""
+        self._response = response
+        self._where = where
+
+    def add_request_url(self):
+        """
+        добавляет данные об отправленном на сервер запросе
+        """
+        self._msg += f"Содержимое отправляемого запроса (url, query params, тело):\n" \
+                     f"\tURL: {self._response.request.url}\n"
+        self._msg += f"\tmethod: {self._response.request.method}\n"
+        self._msg += f"\theaders: {dict(self._response.request.headers)}\n"
+        if hasattr(self._response.request, 'params') and self._response.request.params:
+            self._msg += f"\tquery params: {self._response.request.params}\n"
+        else:
+            self._msg += f"\tquery params:\n"
+        if hasattr(self._response.request, 'content') and self._response.request.read():
+            self._msg += f"\tbody: {self._response.request.read()}\n"
+        else:
+            self._msg += f"\tbody:\n"
+        return self
+
+    def add_response_info(self):
+        """
+        добавляет информацию о содержимом тела ответа
+        """
+        self._msg += f"Тело ответа:\n\t{self._response.content}\n"
+        return self
+
+    def add_error_info(self, text):
+        if text:
+            self._msg += f"\n{text}\n"
+        else:
+            self._msg += "\n"
+        return self
+
+    def get_message(self):
+        return self._msg
+
+
+class BodyLogMsg(LogMsg):
+    """
+    Добавляет в логи результаты проверок тела ответа.
+    """
+
+    def __init__(self, response):
+        super().__init__('В ТЕЛЕ ОТВЕТА', response)
+
+    def add_compare_result(self, diff):
+        """
+        добавляет информацию о результате сравнения полученного json с эталоном
+        :param diff: словарь с данными полей, которые после сравнения имеют разные значения
+        """
+        self._msg += f"{self._where} в json следующие поля не совпали с эталоном:\n"
+        for key, value in diff.items():
+            self._msg += f"ключ: {value['path']}\n\t\texpected: {value['expected']} \n\t\tactual: {value['actual']}\n"
+        return self
+
+
 class CodeLogMsg(LogMsg):
     """
     Добавляет в логи результаты проверки кода ответа.
