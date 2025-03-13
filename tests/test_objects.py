@@ -134,3 +134,73 @@ class TestObjects:
         # убеждаемся, что сервер дал BAD REQUEST ответ
         assert_status_code(response, HTTPStatus.BAD_REQUEST)
         assert_bad_request(request, response)
+
+    def test_put_object_with_empty_body(self, client, request):
+        """
+        обновление объекта в базе на пустой объект,
+        PUT /objects/{id}
+        """
+        # записываем объект в базу со всеми заполненными полями
+        post_obj = read_json_common_request_data("valid_post_object")
+        response = post_object(client, json=post_obj)
+        assert_status_code(response, HTTPStatus.OK)
+
+        # обновляем этот объект на пустой объект
+        exp_json = {"id": response.json()['id'], "name": None, "data": None}
+        response = put_object(client, exp_json['id'], json={})
+
+        # убеждаемся, что объект был успешно обновлен
+        assert_status_code(response, HTTPStatus.OK)
+        assert_schema(response, ObjectUpdateOutSchema)
+        should_be_updated_success(request, client, response, exp_json)
+
+    def test_put_object_with_full_body(self, client, request):
+        """
+        обновление всех полей объекта в базе,
+        PUT /objects/{id}
+        """
+        # записываем объект в базу со всеми заполненными полями
+        post_obj = read_json_common_request_data("valid_post_object")
+        response = post_object(client, json=post_obj)
+        assert_status_code(response, HTTPStatus.OK)
+
+        # обновляем значения всех полей этого объекта на новые
+        put_obj = read_json_test_data(request)
+        put_obj_id = response.json()['id']
+        response = put_object(client, put_obj_id, json=put_obj)
+
+        # убеждаемся, что объект был успешно обновлен
+        assert_status_code(response, HTTPStatus.OK)
+        assert_schema(response, CustomObjUpdateOutSchema)
+        put_obj['id'] = put_obj_id
+        should_be_updated_success(request, client, response, put_obj)
+
+    def test_put_object_send_invalid_json(self, client, request):
+        """
+        попытка обновить объект, отправив невалидный json,
+        PUT /objects/{id}
+        """
+        # записываем объект в базу со всеми заполненными полями
+        response = post_object(client, json=read_json_common_request_data("valid_post_object"))
+        assert_status_code(response, HTTPStatus.OK)
+
+        # пытаемся обновить этот объект, отправив невалидный json
+        response = put_object(client, response.json()['id'], content='{"name",}',
+                              headers={"Content-Type": "application/json"})
+
+        # убеждаемся, что сервер дал BAD REQUEST ответ
+        assert_status_code(response, HTTPStatus.BAD_REQUEST)
+        assert_bad_request(request, response)
+
+    def test_put_object_update_non_exist_obj(self, client, request):
+        """
+        попытка обновить несуществующий объект,
+        PUT /objects/{id}
+        """
+        # пытаемся обновить несуществующие объект
+        obj_id = "ff8081818a194cb8018a79e7545545ac"
+        response = put_object(client, obj_id, json={})
+
+        # убеждаемся, что сервер дал NOT FOUND ответ
+        assert_status_code(response, HTTPStatus.NOT_FOUND)
+        assert_not_found(request, response, obj_id)
