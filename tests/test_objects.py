@@ -95,3 +95,42 @@ class TestObjects:
         # убеждаемся, что сервер вернул NOT FOUND ответ
         assert_status_code(response, HTTPStatus.NOT_FOUND)
         assert_not_exist(request, response, 1593576458)
+
+    def test_post_object_empty_body(self, client, request):
+        """
+        запись объекта в базу с пустым телом,
+        POST /objects
+        """
+        # записываем объект в базу с пустым телом
+        response = post_object(client, json={})
+
+        # убеждаемся, что объект успешно записан в базу
+        assert_status_code(response, HTTPStatus.OK)
+        assert_schema(response, ObjectCreateOutSchema)
+        should_be_posted_success(request, client, response, exp_obj={"data": None, "name": None})
+
+    def test_post_object_with_full_body(self, client, request):
+        """
+        запись объекта в базу полностью заполненным телом,
+        POST /objects
+        """
+        # записываем объект в базу со всеми заполненными полями
+        exp_obj = read_json_common_request_data("valid_post_object")
+        response = post_object(client, json=exp_obj)
+
+        # убеждаемся, что объект успешно записан в базу
+        assert_status_code(response, HTTPStatus.OK)
+        assert_schema(response, CustomObjCreateOutSchema)
+        should_be_posted_success(request, client, response, exp_obj)
+
+    def test_post_object_send_invalid_json(self, client, request):
+        """
+        попытка записать в базу невалидный json,
+        POST /objects
+        """
+        # отправляем запрос на запись объекта в базу с невалидным json в теле
+        response = post_object(client, content='{"name",}', headers={"Content-Type": "application/json"})
+
+        # убеждаемся, что сервер дал BAD REQUEST ответ
+        assert_status_code(response, HTTPStatus.BAD_REQUEST)
+        assert_bad_request(request, response)
